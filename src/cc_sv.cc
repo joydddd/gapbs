@@ -16,6 +16,13 @@
 #include "timer.h"
 
 
+void pin_start() asm("pin_hook_init");
+void pin_stop() asm("pin_hook_fini");
+__attribute_noinline__ void pin_start() {fprintf(stderr, "PIN START\n");}
+__attribute_noinline__ void pin_stop() { fprintf(stderr, "PIN END\n"); }
+#include <omp.h>
+
+
 /*
 GAP Benchmark Suite
 Kernel: Connected Components (CC)
@@ -54,6 +61,7 @@ pvector<NodeID> ShiloachVishkin(const Graph &g) {
     comp[n] = n;
   bool change = true;
   int num_iter = 0;
+pin_start();
   while (change) {
     change = false;
     num_iter++;
@@ -79,6 +87,7 @@ pvector<NodeID> ShiloachVishkin(const Graph &g) {
       }
     }
   }
+pin_stop();
   cout << "Shiloach-Vishkin took " << num_iter << " iterations" << endl;
   return comp;
 }
@@ -151,6 +160,8 @@ bool CCVerifier(const Graph &g, const pvector<NodeID> &comp) {
 
 
 int main(int argc, char* argv[]) {
+  // omp_set_num_threads(10);
+  fprintf(stderr, "[OMP] Num threads: %d\n", omp_get_max_threads());
   CLApp cli(argc, argv, "connected-components");
   if (!cli.ParseArgs())
     return -1;

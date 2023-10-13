@@ -24,6 +24,15 @@ new values to be immediately visible (like Gauss-Seidel method). The prior PR
 implemention is still available in src/pr_spmv.cc.
 */
 
+void pin_start() asm("pin_hook_init");
+void pin_stop() asm("pin_hook_fini");
+__attribute_noinline__ void pin_start() {fprintf(stderr, "PIN START\n");}
+__attribute_noinline__ void pin_stop() { fprintf(stderr, "PIN END\n"); }
+
+#include <omp.h>
+
+#include "sim_api.h"
+
 
 using namespace std;
 
@@ -37,6 +46,8 @@ pvector<ScoreT> PageRankPullGS(const Graph &g, int max_iters,
   const ScoreT base_score = (1.0f - kDamp) / g.num_nodes();
   pvector<ScoreT> scores(g.num_nodes(), init_score);
   pvector<ScoreT> outgoing_contrib(g.num_nodes());
+  SimRoiStart();
+  pin_start();
   #pragma omp parallel for
   for (NodeID n=0; n < g.num_nodes(); n++)
     outgoing_contrib[n] = init_score / g.out_degree(n);
@@ -56,6 +67,8 @@ pvector<ScoreT> PageRankPullGS(const Graph &g, int max_iters,
     if (error < epsilon)
       break;
   }
+  pin_stop();
+  SimRoiEnd();
   return scores;
 }
 
@@ -95,6 +108,8 @@ bool PRVerifier(const Graph &g, const pvector<ScoreT> &scores,
 
 
 int main(int argc, char* argv[]) {
+  // omp_set_num_threads(10);
+  fprintf(stderr, "[OMP] Num threads: %d\n", omp_get_max_threads());
   CLPageRank cli(argc, argv, "pagerank", 1e-4, 20);
   if (!cli.ParseArgs())
     return -1;

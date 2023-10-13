@@ -17,6 +17,12 @@
 #include "graph.h"
 #include "pvector.h"
 
+#include <omp.h>
+
+void pin_start() asm("pin_hook_init");
+void pin_stop() asm("pin_hook_fini");
+__attribute_noinline__ void pin_start() {fprintf(stderr, "PIN START\n");}
+__attribute_noinline__ void pin_stop() { fprintf(stderr, "PIN END\n"); }
 
 /*
 GAP Benchmark Suite
@@ -51,6 +57,7 @@ using namespace std;
 
 size_t OrderedCount(const Graph &g) {
   size_t total = 0;
+  pin_start();
   #pragma omp parallel for reduction(+ : total) schedule(dynamic, 64)
   for (NodeID u=0; u < g.num_nodes(); u++) {
     for (NodeID v : g.out_neigh(u)) {
@@ -67,6 +74,7 @@ size_t OrderedCount(const Graph &g) {
       }
     }
   }
+  pin_stop();
   return total;
 }
 
@@ -129,6 +137,7 @@ bool TCVerifier(const Graph &g, size_t test_total) {
 
 
 int main(int argc, char* argv[]) {
+  omp_set_num_threads(10);
   CLApp cli(argc, argv, "triangle count");
   if (!cli.ParseArgs())
     return -1;

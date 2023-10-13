@@ -42,6 +42,7 @@ propagation phase.
     International Symposium on Parallel & Distributed Processing (IPDPS), 2009.
 */
 
+#include <omp.h>
 
 using namespace std;
 typedef float ScoreT;
@@ -227,6 +228,7 @@ bool BCVerifier(const Graph &g, SourcePicker<Graph> &sp, NodeID num_iters,
 
 
 int main(int argc, char* argv[]) {
+  omp_set_num_threads(10);
   CLIterApp cli(argc, argv, "betweenness-centrality", 1);
   if (!cli.ParseArgs())
     return -1;

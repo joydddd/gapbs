@@ -27,6 +27,15 @@ until the next iteration (like Jacobi-style method).
 */
 
 
+void pin_start() asm("pin_hook_init");
+void pin_stop() asm("pin_hook_fini");
+__attribute_noinline__ void pin_start() {fprintf(stderr, "PIN START\n");}
+__attribute_noinline__ void pin_stop() { fprintf(stderr, "PIN END\n"); }
+
+#include <omp.h>
+
+
+
 using namespace std;
 
 typedef float ScoreT;
@@ -38,6 +47,7 @@ pvector<ScoreT> PageRankPull(const Graph &g, int max_iters,
   const ScoreT base_score = (1.0f - kDamp) / g.num_nodes();
   pvector<ScoreT> scores(g.num_nodes(), init_score);
   pvector<ScoreT> outgoing_contrib(g.num_nodes());
+  pin_start();
   for (int iter=0; iter < max_iters; iter++) {
     double error = 0;
     #pragma omp parallel for
@@ -56,6 +66,7 @@ pvector<ScoreT> PageRankPull(const Graph &g, int max_iters,
     if (error < epsilon)
       break;
   }
+  pin_stop();
   return scores;
 }
 
@@ -95,6 +106,7 @@ bool PRVerifier(const Graph &g, const pvector<ScoreT> &scores,
 
 
 int main(int argc, char* argv[]) {
+  fprintf(stderr, "[OMP] Num threads: %d\n", omp_get_max_threads());
   CLPageRank cli(argc, argv, "pagerank", 1e-4, 20);
   if (!cli.ParseArgs())
     return -1;

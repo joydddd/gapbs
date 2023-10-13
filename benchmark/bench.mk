@@ -83,7 +83,7 @@ $(GRAPH_DIR)/webU.sg: $(RAW_GRAPH_DIR)/sk-2005/sk-2005.mtx converter
 
 # Synthetic
 
-KRON_ARGS = -g27 -k16
+KRON_ARGS = -g27 -k16 # scale down to 2^27, 32GB
 $(GRAPH_DIR)/kron.sg: converter
 	./converter $(KRON_ARGS) -b $@
 

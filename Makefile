@@ -1,6 +1,7 @@
 # See LICENSE.txt for license details.
 
 CXX_FLAGS += -std=c++11 -O3 -Wall
+CXX_FLAGS += -I/home/joydong/Desktop/spec/sniper/include
 PAR_FLAG = -fopenmp
 
 ifneq (,$(findstring icpc,$(CXX)))

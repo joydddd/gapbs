@@ -14,6 +14,12 @@
 #include "sliding_queue.h"
 #include "timer.h"
 
+void pin_start() asm("pin_hook_init");
+void pin_stop() asm("pin_hook_fini");
+__attribute_noinline__ void pin_start() {fprintf(stderr, "PIN START\n");}
+__attribute_noinline__ void pin_stop() { fprintf(stderr, "PIN END\n"); }
+
+
 
 /*
 GAP Benchmark Suite
@@ -39,6 +45,7 @@ them in parent array as negative numbers. Thus the encoding of parent is:
     Computing, Networking, Storage and Analysis (SC), Salt Lake City, Utah,
     November 2012.
 */
+#include <omp.h>
 
 
 using namespace std;
@@ -137,6 +144,7 @@ pvector<NodeID> DOBFS(const Graph &g, NodeID source, int alpha = 15,
   front.reset();
   int64_t edges_to_check = g.num_edges_directed();
   int64_t scout_count = g.out_degree(source);
+  pin_start();
   while (!queue.empty()) {
     if (scout_count > edges_to_check / alpha) {
       int64_t awake_count, old_awake_count;
@@ -165,7 +173,8 @@ pvector<NodeID> DOBFS(const Graph &g, NodeID source, int alpha = 15,
       PrintStep("td", t.Seconds(), queue.size());
     }
   }
-  #pragma omp parallel for
+  pin_stop();
+#pragma omp parallel for
   for (NodeID n = 0; n < g.num_nodes(); n++)
     if (parent[n] < -1)
       parent[n] = -1;
@@ -242,6 +251,8 @@ bool BFSVerifier(const Graph &g, NodeID source,
 
 
 int main(int argc, char* argv[]) {
+  // omp_set_num_threads(10);
+  fprintf(stderr, "[OMP] Num threads: %d\n", omp_get_max_threads());
   CLApp cli(argc, argv, "breadth-first search");
   if (!cli.ParseArgs())
     return -1;

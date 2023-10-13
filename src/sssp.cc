@@ -15,6 +15,11 @@
 #include "pvector.h"
 #include "timer.h"
 
+void pin_start() asm("pin_hook_init");
+void pin_stop() asm("pin_hook_fini");
+__attribute_noinline__ void pin_start() {fprintf(stderr, "PIN START\n");}
+__attribute_noinline__ void pin_stop() { fprintf(stderr, "PIN END\n"); }
+
 
 /*
 GAP Benchmark Suite
@@ -59,6 +64,8 @@ execution order, leading to significant speedup on large diameter road networks.
 */
 
 
+#include <omp.h>
+
 using namespace std;
 
 const WeightT kDistInf = numeric_limits<WeightT>::max()/2;
@@ -94,6 +101,8 @@ pvector<WeightT> DeltaStep(const WGraph &g, NodeID source, WeightT delta) {
   size_t frontier_tails[2] = {1, 0};
   frontier[0] = source;
   t.Start();
+
+  pin_start();
   #pragma omp parallel
   {
     vector<vector<NodeID> > local_bins(0);
@@ -127,9 +136,9 @@ pvector<WeightT> DeltaStep(const WGraph &g, NodeID source, WeightT delta) {
       #pragma omp barrier
       #pragma omp single nowait
       {
-        t.Stop();
-        PrintStep(curr_bin_index, t.Millisecs(), curr_frontier_tail);
-        t.Start();
+        // t.Stop();
+        // PrintStep(curr_bin_index, t.Millisecs(), curr_frontier_tail);
+        // t.Start();
         curr_bin_index = kMaxBin;
         curr_frontier_tail = 0;
       }
@@ -146,6 +155,7 @@ pvector<WeightT> DeltaStep(const WGraph &g, NodeID source, WeightT delta) {
     #pragma omp single
     cout << "took " << iter << " iterations" << endl;
   }
+  pin_stop();
   return dist;
 }
 
@@ -192,6 +202,7 @@ bool SSSPVerifier(const WGraph &g, NodeID source,
 
 
 int main(int argc, char* argv[]) {
+  fprintf(stderr, "[OMP] Num threads: %d\n", omp_get_max_threads());
   CLDelta<WeightT> cli(argc, argv, "single-source shortest-path");
   if (!cli.ParseArgs())
     return -1;
@@ -199,6 +210,7 @@ int main(int argc, char* argv[]) {
   WGraph g = b.MakeGraph();
   SourcePicker<WGraph> sp(g, cli.start_vertex());
   auto SSSPBound = [&sp, &cli] (const WGraph &g) {
+    
     return DeltaStep(g, sp.PickNext(), cli.delta());
   };
   SourcePicker<WGraph> vsp(g, cli.start_vertex());

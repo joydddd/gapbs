@@ -34,6 +34,12 @@ which restructures and extends the Shiloach-Vishkin algorithm [2].
     Journal of Algorithms, 3(1):57–67, 1982.
 */
 
+void pin_start() asm("pin_hook_init");
+void pin_stop() asm("pin_hook_fini");
+__attribute_noinline__ void pin_start() {fprintf(stderr, "PIN START\n");}
+__attribute_noinline__ void pin_stop() { fprintf(stderr, "PIN END\n"); }
+
+#include <omp.h>
 
 using namespace std;
 
@@ -99,6 +105,8 @@ pvector<NodeID> Afforest(const Graph &g, int32_t neighbor_rounds = 2) {
   for (NodeID n = 0; n < g.num_nodes(); n++)
     comp[n] = n;
 
+pin_start();
+
   // Process a sparse sampled subgraph first for approximating components.
   // Sample by processing a fixed number of neighbors for each node (see paper)
   for (int r = 0; r < neighbor_rounds; ++r) {
@@ -145,6 +153,7 @@ pvector<NodeID> Afforest(const Graph &g, int32_t neighbor_rounds = 2) {
   }
   // Finally, 'compress' for final convergence
   Compress(g, comp);
+pin_stop();
   return comp;
 }
 
@@ -216,6 +225,8 @@ bool CCVerifier(const Graph &g, const pvector<NodeID> &comp) {
 
 
 int main(int argc, char* argv[]) {
+  // omp_set_num_threads(10);
+  fprintf(stderr, "[OMP] Num threads: %d\n", omp_get_max_threads());
   CLApp cli(argc, argv, "connected-components-afforest");
   if (!cli.ParseArgs())
     return -1;
