@@ -13,11 +13,11 @@
 #include "pvector.h"
 #include "sliding_queue.h"
 #include "timer.h"
-
+#include "sim_api.h"
 void pin_start() asm("pin_hook_init");
 void pin_stop() asm("pin_hook_fini");
-__attribute_noinline__ void pin_start() {fprintf(stderr, "PIN START\n");}
-__attribute_noinline__ void pin_stop() { fprintf(stderr, "PIN END\n"); }
+__attribute_noinline__ void pin_start() { SimRoiStart(); fprintf(stderr, "PIN START\n");}
+__attribute_noinline__ void pin_stop() { SimRoiEnd(); fprintf(stderr, "PIN END\n"); }
 
 
 
@@ -258,6 +258,7 @@ int main(int argc, char* argv[]) {
     return -1;
   Builder b(cli);
   Graph g = b.MakeGraph();
+  fprintf(stderr, "finish making graph\n");
   SourcePicker<Graph> sp(g, cli.start_vertex());
   auto BFSBound = [&sp] (const Graph &g) { return DOBFS(g, sp.PickNext()); };
   SourcePicker<Graph> vsp(g, cli.start_vertex());
